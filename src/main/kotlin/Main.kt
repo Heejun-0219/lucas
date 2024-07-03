@@ -1,128 +1,124 @@
-import java.util.HashMap
+import java.time.LocalDate
 
-// 전화번호에서 하이픈을 제거하는 함수
-fun remove(from: String): String {
-    val result = from.replace("-", "")
-    println("remove: $from -> $result") // 디버깅 로그 추가
-    return result
+fun main() {
+    // 사용자로부터 지구 날짜를 입력받습니다.
+    print("지구날짜는? ")
+    // val earthDate = read().trim()
+    val earthDate = "2024-01-01"
+    val earthDateParsed = LocalDate.parse(earthDate)
+    val baseDate = LocalDate.of(1, 1, 1)
+
+    // 기준일로부터의 경과 일수를 계산합니다.
+    val daysFromBase = calculateDaysFromBase(baseDate, earthDateParsed) + 1
+
+    // 진행 바를 표시합니다.
+    showProgressBar()
+
+    // 화성 날짜로 변환합니다.
+    val marsDate = convertEarthToMars(daysFromBase)
+
+    // 결과를 출력합니다.
+    println("지구날은 ${printEarthDays(daysFromBase)} => ${marsDate.first} 화성년 ${marsDate.second}월 ${marsDate.third}일\n")
+
+    // 화성 달력을 출력합니다.
+    printMarsCalendar(marsDate.first, marsDate.second)
 }
 
-// 전화번호의 길이가 유효한지 확인하는 함수
-fun isInvalidLength(tel: String): Boolean {
-    return tel.length > 12 || tel.length < 8
+fun calculateDaysFromBase(
+    baseDate: LocalDate,
+    targetDate: LocalDate,
+): Long {
+    var daysCount = 0L
+    var currentYear = baseDate.year
+    val targetYear = targetDate.year
+
+    // 연도별 일수 계산
+    while (currentYear < targetYear) {
+        daysCount += if (currentYear % 4 == 0) 366 else 365
+        currentYear++
+    }
+
+    // 해당 연도에서 남은 일수 계산
+    daysCount += targetDate.dayOfYear - baseDate.dayOfYear
+
+    return daysCount
 }
 
-// 전화번호가 '0'으로 시작하는지 확인하는 함수
-fun isInvalidStart(tel: String): Boolean {
-    return tel[0] != '0'
+fun showProgressBar() {
+    for (i in 1..9) {
+        print("\r${"█".repeat(i)}${"▁".repeat(10 - i)} ${i * 10}%")
+        // Thread.sleep(500)
+    }
+    println("\r${"█".repeat(10)} 화성까지 여행 100%")
 }
 
-// 전화번호의 마지막 네 자리가 모두 같은 숫자인지 확인하는 함수
-fun isRepeatedDigits(ext: String): Boolean {
-    return ext.all { it == ext[0] }
+fun convertEarthToMars(daysFromBase: Long): Triple<Int, Int, Int> {
+    var remainingDays = daysFromBase
+    var marsYear = 0
+
+    // 화성년 계산
+    while (remainingDays >= (if (marsYear % 2 == 0) 668 else 669)) {
+        remainingDays -= if (marsYear % 2 == 0) 668 else 669
+        marsYear++
+    }
+    // 화성월 계산
+    val monthDays =
+        listOf(
+            28, // 1
+            28, // 2
+            28, // 3
+            28, // 4
+            28, // 5
+            27, // 6
+            28, // 7
+            28, // 8
+            28, // 9
+            28, // 10
+            28, // 11
+            27, // 12
+            28, // 13
+            28, // 14
+            28, // 15
+            28, // 16
+            28, // 17
+            27, // 18
+            28, // 19
+            28, // 20
+            28, // 21
+            28, // 22
+            28, // 23
+            if (marsYear % 2 == 0) 28 else 27, // 24
+        )
+    var marsMonth = 1
+    while (remainingDays >= monthDays[marsMonth]) {
+        remainingDays -= monthDays[marsMonth]
+        marsMonth++
+    }
+
+    val marsDay = remainingDays
+
+    return Triple(marsYear, marsMonth, marsDay.toInt())
 }
 
-// 서울 지역번호를 처리하는 함수
-fun handleSeoulNumber(tel: String, ext: String): List<String> {
-    println("handleSeoulNumber: tel=$tel, ext=$ext") // 디버깅 로그 추가
-    return if (tel.length != 10 || isRepeatedDigits(ext)) {
-        listOf("서울", "X")
-    } else {
-        listOf("서울", "O")
+fun printMarsCalendar(
+    year: Int,
+    month: Int,
+) {
+    println("     ${year}년 ${month}월")
+    println("Su Lu Ma Me Jo Ve Sa")
+
+    val daysInMonth =
+        when {
+            month % 6 == 0 && month != 24 -> 27
+            month == 24 && (year % 2 == 0) -> 28
+            month == 24 && (year % 2 != 0) -> 27
+            else -> 28
+        }
+
+    for (day in 1..daysInMonth) {
+        print("%2d ".format(day))
+        if (day % 7 == 0 || day == daysInMonth) println()
     }
 }
 
-// 휴대폰 번호를 처리하는 함수
-fun handleMobileNumber(tel: String, top: String): List<String> {
-    println("handleMobileNumber: tel=$tel, top=$top") // 디버깅 로그 추가
-    val map = hashMapOf(
-        "010" to "휴대폰", "011" to "휴대폰", "016" to "휴대폰", "017" to "휴대폰",
-        "018" to "휴대폰", "019" to "휴대폰"
-    )
-    if (!map.containsKey(top)) return listOf("전국", "X")
-    return if (tel[2] == '0' && tel.length == 11 && (tel[3].toString().toIntOrNull() ?: 1) % 2 == 0) {
-        listOf("휴대폰", "O")
-    } else {
-        listOf("휴대폰", "X")
-    }
-}
-
-// 국제 전화를 처리하는 함수
-fun handleInternationalNumber(tel: String): List<String> {
-    println("handleInternationalNumber: tel=$tel") // 디버깅 로그 추가
-    return if (tel.length in 8..12) listOf("국제", "O") else listOf("전국", "X")
-}
-
-// 지역 번호를 처리하는 함수
-fun handleRegionalNumber(tel: String, top: String): List<String> {
-    println("handleRegionalNumber: tel=$tel, top=$top") // 디버깅 로그 추가
-    val map = hashMapOf(
-        "031" to "경기", "032" to "인천", "033" to "강원", "041" to "충청", "042" to "대전",
-        "044" to "세종", "051" to "부산", "052" to "울산", "053" to "대구", "054" to "경북",
-        "055" to "경남", "061" to "전남", "062" to "광주", "063" to "전북", "064" to "제주"
-    )
-    val region = map[top] ?: return listOf("전국", "X")
-    return if (tel.length == 10 && tel[3] == '0') {
-        listOf(region, "X")
-    } else {
-        listOf(region, "O")
-    }
-}
-
-// 전화번호를 처리하는 메인 함수
-fun solution(telno: String): List<String> {
-    val tel = remove(telno)
-    println("solution: tel=$tel") // 디버깅 로그 추가
-
-    if (isInvalidLength(tel) || isInvalidStart(tel)) return listOf("전국", "X")
-
-    val top = tel.substring(0, 3)
-    val ext = tel.takeLast(4)
-
-    return when (tel[1]) {
-        '2' -> handleSeoulNumber(tel, ext)  // 서울 번호 처리
-        '1' -> handleMobileNumber(tel, top) // 휴대폰 번호 처리
-        '0' -> if (tel[2] == '1' || tel[2] == '2') handleInternationalNumber(tel) else listOf("전국", "X") // 국제 번호 처리
-        else -> handleRegionalNumber(tel, top) // 지역 번호 처리
-    }
-}
-
-fun main(args: Array<String>) {
-    // size failure
-    println(solution("010123456789"))
-    println(solution("01012345678"))
-    println(solution("0101234567"))
-    println(solution("010123456"))
-    // first digit failure
-    println(solution("11012345678"))
-    println(solution("21012345678"))
-    println(solution("31012345678"))
-
-    // normal test
-    println(solution("010-123-1234"))
-    println(solution("010-2234-1234"))
-    println(solution("02-1234-1234"))
-    println(solution("0212341111"))
-    println(solution("0311237890"))
-    println(solution("061-012-7890"))
-    println(solution("015-0157899"))
-    println(solution("042-2123-7890"))
-
-    // extension failure like add character
-    println(solution("010-123-123a"))
-    println(solution("010-123-123"))
-    println(solution("010-123-12"))
-    println(solution("010-123-1"))
-    println(solution("010-123-"))
-
-    // 국제번호 001, 002 + 8 ~ 12자리
-    println(solution("001-1234-1234"))
-    println(solution("002-1234-1234"))
-    println(solution("00112341234"))
-    println(solution("00212341234"))
-    println(solution("0011234123"))
-    println(solution("0021234123"))
-    println(solution("001123412"))
-    println(solution("002123412"))
-    println(solution("00112341"))
-}
+fun printEarthDays(day: Long): String = "%,d".format(day)
